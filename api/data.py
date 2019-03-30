@@ -7,8 +7,8 @@ dataAPI = Blueprint('dataAPI', __name__)
 def data():
     methodName = request.method
     if methodName == 'GET':
-        findData(request)
-        
+        mydata = findData(request)
+        return jsonify(mydata)
     elif methodName == 'POST':
         task = getData(request)
         addNewAccount(task)
@@ -40,11 +40,30 @@ def addNewAccount(task):
     conn.commit()
     conn.close()
 
+def exQ(c ,query):
+    c.execute(query)
+    return c.fetchall()
+
 def findData(request):
     conn = sqlite3.connect('data/accounts.db')
     c = conn.cursor()
-    c.execute("SELECT * FROM accounts")
-    rows = c.fetchall()
+    rows = exQ(c,"SELECT * FROM accounts")
+    rawtableNames = exQ(c, "PRAGMA table_info(accounts)")
 
-    print(request.args)
-    print(rows)
+    terms = []
+    for i in rawtableNames:
+        terms.append(i[1].lower())
+
+    output = []
+    #this has to be able to search for the data that i need. maybe in the future i can get any data t be added.
+    for j in terms:
+        for i in rows:
+            try:
+                if i[terms.index(j)] == request.args[j]:
+                    output.append(i)
+            except KeyError:
+                pass
+    if output:
+        return output
+    else:
+        return {'data':'Search Unsucessful'}
